@@ -160,8 +160,8 @@ const store = {
 };
 const DEFAULT_CFG = {
   provider: 'auto',
-  keys: { gemini: '', groq: '', openrouter: '', custom: '' },
-  models: { gemini: '', groq: '', openrouter: '', puter: '', ollama: '', custom: '' },
+  keys: { gemini: '', groq: '', openrouter: '', deepseek: '', custom: '' },
+  models: { gemini: '', groq: '', openrouter: '', deepseek: '', puter: '', ollama: '', custom: '' },
   bases: { ollama: 'http://localhost:11434/v1', custom: '' },
   tier: 'default',
   sources: { wikipedia: true, wiktionary: true, wikidata: true, wikitree: true, gnd: true, nationalize: true }
@@ -181,6 +181,7 @@ const PROV = {
   gemini: { name: 'Google Gemini', label: 'Google Gemini – kostenloser Schlüssel', key: true, keyUrl: 'https://aistudio.google.com/apikey', keyHost: 'aistudio.google.com', note: 'Beste Qualität unter den Gratis-Diensten. Schlüssel in Google AI Studio erstellen (kostenlos, Google-Konto nötig).' },
   groq: { name: 'Groq', label: 'Groq – kostenloser Schlüssel', key: true, keyUrl: 'https://console.groq.com/keys', keyHost: 'console.groq.com', base: 'https://api.groq.com/openai/v1', note: 'Sehr schnell, offene Modelle wie Llama und GPT-OSS. Ein kostenloses Konto genügt.' },
   openrouter: { name: 'OpenRouter', label: 'OpenRouter – kostenlose Modelle', key: true, keyUrl: 'https://openrouter.ai/keys', keyHost: 'openrouter.ai', base: 'https://openrouter.ai/api/v1', note: 'Wählt automatisch ein kostenloses Modell (Kennung „:free“, rund 50 Anfragen pro Tag).' },
+  deepseek: { name: 'DeepSeek', label: 'DeepSeek – API-Schlüssel (sehr günstig)', key: true, keyUrl: 'https://platform.deepseek.com/api_keys', keyHost: 'platform.deepseek.com', base: 'https://api.deepseek.com', note: 'Sehr günstig, aber nicht kostenlos: Eine Suche kostet meist weniger als einen Cent. Guthaben auf platform.deepseek.com aufladen und dort einen Schlüssel erstellen.' },
   puter: { name: 'Puter', label: 'Puter – ohne Schlüssel', note: 'Kein Schlüssel nötig. Beim ersten Mal öffnet Puter ein Fenster zur kostenlosen Anmeldung; die Nutzung läuft über dein Puter-Kontingent.' },
   ollama: { name: 'Ollama', label: 'Ollama – lokal auf deinem Rechner', base: true, note: 'Komplett kostenlos und privat. Ollama installieren, ein Modell laden (z. B. „ollama pull qwen3“) und diese Seite als Datei öffnen. Für gehostete Seiten OLLAMA_ORIGINS setzen.' },
   custom: { name: 'Eigener Dienst', label: 'Eigener Dienst (OpenAI-kompatibel)', key: 'optional', base: true, note: 'Für jeden Dienst mit /chat/completions-Schnittstelle, z. B. Mistral, Cerebras oder LM Studio.' },
@@ -192,6 +193,7 @@ function effProvider() {
   if (cfg.keys.gemini) return 'gemini';
   if (cfg.keys.groq) return 'groq';
   if (cfg.keys.openrouter) return 'openrouter';
+  if (cfg.keys.deepseek) return 'deepseek';
   return 'puter';
 }
 const SOURCE_NAMES = { wikipedia: 'Wikipedia', wiktionary: 'Wiktionary', wikidata: 'Wikidata', wikitree: 'WikiTree', gnd: 'GND', nationalize: 'nationalize.io' };
@@ -724,17 +726,25 @@ function rankGroq(ids) {
   const score = id => { const i = pref.findIndex(p => id.startsWith(p)); return i < 0 ? 50 : i; };
   return ids.filter(id => !/(whisper|tts|guard|playai|orpheus|distil|compound|allam|safeguard)/i.test(id)).sort((a, b) => score(a) - score(b));
 }
+/* DeepSeek: das günstige Flash-Modell zuerst, dann Chat, dann Pro/Reasoner */
+function rankDeepSeek(ids) {
+  const score = id => id === 'deepseek-flash' ? 0 : /flash/.test(id) && !/vision/.test(id) ? 1 : id === 'deepseek-chat' ? 2 : /chat/.test(id) ? 3 : /pro/.test(id) ? 4 : /reason/.test(id) ? 5 : 6;
+  return ids.filter(id => !/(vision|embed|ocr)/i.test(id)).map((id, i) => ({ id, i })).sort((a, b) => (score(a.id) - score(b.id)) || (a.i - b.i)).map(x => x.id);
+}
 async function aiOpenAI(which, prompt, onProgress) {
   const P = PROV[which];
-  const base = String(which === 'groq' || which === 'openrouter' ? P.base : (cfg.bases[which] || '')).trim().replace(/\/+$/, '');
+  const base = String(typeof P.base === 'string' ? P.base : (cfg.bases[which] || '')).trim().replace(/\/+$/, '');
   const key = String(cfg.keys[which] || '').trim();
   if (!base) throw new Error('Bitte in den Einstellungen die Adresse (Base-URL) des Dienstes eintragen.');
-  if (P.key === true && !key) throw new Error(`Für ${P.name} fehlt der Schlüssel. Kostenlos erhältlich unter ${P.keyHost}.`);
+  if (P.key === true && !key) throw new Error(`Für ${P.name} fehlt der Schlüssel. ${which === 'deepseek' ? 'Erhältlich' : 'Kostenlos erhältlich'} unter ${P.keyHost}.`);
   let cands = cfg.models[which] ? [cfg.models[which].trim()] : [];
   if (!cands.length) {
     try {
       if (which === 'openrouter') cands = await openrouterFreeModels();
-      else { const ids = await openaiModels(base, key); cands = which === 'groq' ? rankGroq(ids) : ids; }
+      else {
+        const ids = await openaiModels(base, key);
+        cands = which === 'groq' ? rankGroq(ids) : which === 'deepseek' ? rankDeepSeek(ids) : ids;
+      }
     } catch (e) {
       if (e.cancelled) throw e;
       if (e.status === 401) throw keyErr(P.name, P.keyHost);
@@ -742,12 +752,17 @@ async function aiOpenAI(which, prompt, onProgress) {
     }
   }
   if (!cands.length && which === 'groq') cands = ['llama-3.3-70b-versatile'];
+  if (!cands.length && which === 'deepseek') cands = ['deepseek-flash', 'deepseek-chat'];
   if (!cands.length) throw new Error('Kein Modell gefunden. Bitte in den Einstellungen ein Modell eintragen.');
   let lastErr = null;
-  for (const model of cands.slice(0, 3)) {
+  let jsonMode = which === 'deepseek';
+  const queue = cands.slice(0, 3);
+  for (let i = 0; i < queue.length; i++) {
+    const model = queue[i];
     onProgress(`${P.name} · ${model}`);
     const body = { model, messages: [{ role: 'user', content: prompt }], temperature: 0.3, max_tokens: which === 'groq' ? 4000 : 6000 };
     if (which === 'groq' && /gpt-oss/.test(model)) body.reasoning_effort = 'low';
+    if (jsonMode) body.response_format = { type: 'json_object' };
     try {
       const j = await fetchJSON(`${base}/chat/completions`, {
         method: 'POST', timeout: 150000,
@@ -762,9 +777,14 @@ async function aiOpenAI(which, prompt, onProgress) {
       if (e.cancelled) throw e;
       lastErr = e;
       if (e.status === 401) throw keyErr(P.name, P.keyHost);
+      if (e.status === 402 && which === 'deepseek') throw new Error('DeepSeek meldet kein Guthaben. Bitte auf platform.deepseek.com Guthaben aufladen.');
+      if (e.status === 400 && jsonMode) { jsonMode = false; i--; continue; }
       if (!e.status || [400, 402, 404, 408, 413, 429, 500, 502, 503].includes(e.status)) continue;
       throw e;
     }
+  }
+  if (which === 'deepseek' && lastErr && !lastErr.status && /nicht erreichbar/.test(lastErr.message)) {
+    throw new Error('DeepSeek ist aus dem Browser nicht erreichbar (Netzwerk oder Browser-Sperre). Alternative: OpenRouter bietet ebenfalls DeepSeek-Modelle an.');
   }
   throw lastErr || new Error(`${P.name} nicht erreichbar`);
 }
@@ -792,7 +812,7 @@ function runAI(prov, prompt, onProgress, refresh) {
   switch (prov) {
     case 'claude': return aiClaude(prompt, onProgress, refresh);
     case 'gemini': return aiGemini(prompt, onProgress);
-    case 'groq': case 'openrouter': case 'ollama': case 'custom': return aiOpenAI(prov, prompt, onProgress);
+    case 'groq': case 'openrouter': case 'deepseek': case 'ollama': case 'custom': return aiOpenAI(prov, prompt, onProgress);
     case 'puter': return aiPuter(prompt, onProgress);
     default: return Promise.reject(new Error('Keine KI ausgewählt.'));
   }
@@ -1314,7 +1334,7 @@ function renderStrata() {
   } else {
     const txt = IS_CLAUDE
       ? (claudeState === 'denied' ? 'Die Seite darf Claude gerade nicht nutzen. Lade die Seite neu, um erneut gefragt zu werden.' : 'Claude ist in dieser Ansicht nicht verfügbar.')
-      : 'Für die Zeitschichten braucht Namensspur eine KI. Kostenlos: Gemini, Groq oder OpenRouter mit Gratis-Schlüssel – oder Puter ganz ohne Schlüssel.';
+      : 'Für die Zeitschichten braucht Namensspur eine KI. Kostenlos: Gemini, Groq oder OpenRouter mit Gratis-Schlüssel oder Puter ganz ohne Schlüssel. Sehr günstig: DeepSeek.';
     state.innerHTML = `<div class="state-box"><div><b>Ohne KI-Auswertung</b><p>${esc(txt)}</p>${IS_CLAUDE ? '' : '<button type="button" class="btn ghost small" data-act="openSettings">KI einrichten</button>'}${quote}</div></div>`;
   }
 }
@@ -1614,7 +1634,7 @@ function fieldKey(p) {
   const P = PROV[p];
   return `<label class="field-label" for="key_${p}">${esc(P.name)}-Schlüssel${P.key === 'optional' ? ' (falls nötig)' : ''}</label>
 <div class="inrow"><input id="key_${p}" type="password" autocomplete="off" spellcheck="false" placeholder="Schlüssel einfügen" value="${esc(cfg.keys[p] || '')}" data-cfg="keys.${p}"><button type="button" class="btn ghost small" data-act="toggleKey" data-for="key_${p}">zeigen</button></div>
-${P.keyUrl ? `<p class="note"><a href="${esc(P.keyUrl)}" target="_blank" rel="noopener">Kostenlosen Schlüssel holen</a> · ${esc(P.keyHost)}</p>` : ''}`;
+${P.keyUrl ? `<p class="note"><a href="${esc(P.keyUrl)}" target="_blank" rel="noopener">${p === 'deepseek' ? 'Schlüssel holen (Guthaben nötig)' : 'Kostenlosen Schlüssel holen'}</a> · ${esc(P.keyHost)}</p>` : ''}`;
 }
 function fieldModel(p) {
   return `<label class="field-label" for="model_${p}">Modell (leer = automatisch)</label>
@@ -1625,7 +1645,7 @@ function fieldBase(p) {
 }
 function renderSettings() {
   const sel = $('#provSel');
-  const opts = IS_CLAUDE ? ['claude'] : ['auto', 'gemini', 'groq', 'openrouter', 'puter', 'ollama', 'custom', 'none'];
+  const opts = IS_CLAUDE ? ['claude'] : ['auto', 'gemini', 'groq', 'openrouter', 'deepseek', 'puter', 'ollama', 'custom', 'none'];
   sel.innerHTML = opts.map(o => `<option value="${o}">${esc(o === 'auto' ? 'Automatisch – erster eingerichteter Dienst, sonst Puter' : PROV[o].label)}</option>`).join('');
   sel.value = IS_CLAUDE ? 'claude' : (opts.includes(cfg.provider) ? cfg.provider : 'auto');
   sel.disabled = IS_CLAUDE;
@@ -1635,19 +1655,20 @@ function renderSettings() {
     ? 'In Claude sind Anfragen an andere Websites gesperrt. Die Live-Quellen funktionieren in der eigenständigen Version.'
     : 'Alle Quellen sind frei zugänglich. Die Abfragen gehen direkt aus deinem Browser an die jeweiligen Dienste.';
   $('#siteNote').textContent = IS_CLAUDE
-    ? 'Die eigenständige Version ist eine einzelne HTML-Datei: Sie fragt Wikipedia, Wikidata, WikiTree & Co. live ab und nutzt kostenlose KIs (Gemini, Groq, OpenRouter, Puter oder Ollama). Doppelklick öffnet sie im Browser; kostenlos online stellen z. B. über Netlify Drop oder GitHub Pages.'
+    ? 'Die eigenständige Version ist eine einzelne HTML-Datei: Sie fragt Wikipedia, Wikidata, WikiTree & Co. live ab und nutzt kostenlose oder günstige KIs (Gemini, Groq, OpenRouter, DeepSeek, Puter oder Ollama). Doppelklick öffnet sie im Browser; kostenlos online stellen z. B. über Netlify Drop oder GitHub Pages.'
     : 'Diese Seite ist eine einzelne HTML-Datei und damit schon eine komplette Website. Kostenlos online stellen: Datei in index.html umbenennen und auf app.netlify.com/drop ziehen oder bei GitHub Pages hochladen. Schlüssel bleiben nur in deinem Browser gespeichert.';
 }
+const autoNote = eff => `Aktuell: ${PROV[eff].name}. Trag unten einen Schlüssel ein, um einen stärkeren Dienst zu nutzen: Gemini, Groq und OpenRouter sind kostenlos, DeepSeek kostet Bruchteile eines Cents pro Suche.`;
 function renderProvFields() {
   const p = IS_CLAUDE ? 'claude' : (cfg.provider || 'auto');
   const eff = effProvider();
-  $('#provNote').textContent = p === 'auto' ? `Aktuell: ${PROV[eff].name}. Trage unten einen kostenlosen Schlüssel ein, um einen besseren Dienst zu nutzen.` : (PROV[p] ? PROV[p].note : '');
+  $('#provNote').textContent = p === 'auto' ? autoNote(eff) : (PROV[p] ? PROV[p].note : '');
   let html = '';
   if (p === 'claude') html += `<label class="field-label" for="tierSel">Gründlichkeit</label><select id="tierSel" data-cfg="tier"><option value="quick"${cfg.tier === 'quick' ? ' selected' : ''}>Schnell</option><option value="default"${cfg.tier === 'default' ? ' selected' : ''}>Standard</option><option value="complex"${cfg.tier === 'complex' ? ' selected' : ''}>Gründlich (dauert länger)</option></select><p class="note">${esc(PROV.claude.note)}</p>`;
-  if (p === 'auto') html += ['gemini', 'groq', 'openrouter'].map(fieldKey).join('');
-  if (['gemini', 'groq', 'openrouter', 'custom'].includes(p)) html += fieldKey(p);
+  if (p === 'auto') html += ['gemini', 'groq', 'openrouter', 'deepseek'].map(fieldKey).join('');
+  if (['gemini', 'groq', 'openrouter', 'deepseek', 'custom'].includes(p)) html += fieldKey(p);
   if (['ollama', 'custom'].includes(p)) html += fieldBase(p);
-  if (['gemini', 'groq', 'openrouter', 'ollama', 'custom', 'puter'].includes(p)) html += fieldModel(p);
+  if (['gemini', 'groq', 'openrouter', 'deepseek', 'ollama', 'custom', 'puter'].includes(p)) html += fieldModel(p);
   $('#provFields').innerHTML = html;
   $('#btnTest').hidden = p === 'none' || IS_CLAUDE;
 }
@@ -1656,7 +1677,7 @@ function setCfgPath(path, value) {
   if (b) cfg[a][b] = value; else cfg[a] = value;
   saveCfg();
   renderAIStatus();
-  if (path.startsWith('keys.') && cfg.provider === 'auto') $('#provNote').textContent = `Aktuell: ${PROV[effProvider()].name}. Trage unten einen kostenlosen Schlüssel ein, um einen besseren Dienst zu nutzen.`;
+  if (path.startsWith('keys.') && cfg.provider === 'auto') $('#provNote').textContent = autoNote(effProvider());
 }
 async function listModels(p) {
   const out = $('#testOut');
@@ -1670,9 +1691,10 @@ async function listModels(p) {
       const list = window.puter.ai.listModels ? await window.puter.ai.listModels() : [];
       ids = (list || []).map(m => typeof m === 'string' ? m : (m && (m.id || m.name))).filter(Boolean);
     } else {
-      const base = String(p === 'groq' ? PROV.groq.base : (cfg.bases[p] || '')).trim().replace(/\/+$/, '');
+      const base = String(typeof PROV[p].base === 'string' ? PROV[p].base : (cfg.bases[p] || '')).trim().replace(/\/+$/, '');
       ids = await openaiModels(base, (cfg.keys[p] || '').trim());
       if (p === 'groq') ids = rankGroq(ids);
+      if (p === 'deepseek') ids = rankDeepSeek(ids);
     }
     const dl = document.getElementById(`dl_${p}`);
     if (dl) dl.innerHTML = ids.slice(0, 200).map(id => `<option value="${esc(id)}"></option>`).join('');
@@ -1812,7 +1834,7 @@ function init() {
 }
 
 if (!HAS_WINDOW || typeof document === 'undefined') {
-  globalThis.__NS_TEST__ = { parseAIJSON, normAI, guessYear, firstYear, eraOf, wdYear, wdYearLabel, wiktDeExtract, wiktEnExtract, cleanWiki, wpSections, wpPick, parseEarliest, parseCenturies, buildWdTree, treeStats, kekule, collectRecords, splitName, capName, rankGemini, rankGroq, buildPrompt, linkGroups, centLabel, fold, slug, EXAMPLE };
+  globalThis.__NS_TEST__ = { parseAIJSON, normAI, guessYear, firstYear, eraOf, wdYear, wdYearLabel, wiktDeExtract, wiktEnExtract, cleanWiki, wpSections, wpPick, parseEarliest, parseCenturies, buildWdTree, treeStats, kekule, collectRecords, splitName, capName, rankGemini, rankGroq, rankDeepSeek, buildPrompt, linkGroups, centLabel, fold, slug, EXAMPLE };
   return;
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

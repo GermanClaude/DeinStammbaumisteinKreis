@@ -22,7 +22,7 @@ Namensspur ist eine kostenlose, KI-gestützte Website für Namens- und Ahnenfors
 
 Die Website besteht nur aus der Datei `index.html`. Sie braucht keinen Server, keine Datenbank und keinen Build-Schritt.
 
-## Kostenlose KI einrichten
+## KI einrichten (kostenlos oder sehr günstig)
 
 Auf der Website oben rechts **KI & Quellen** öffnen und einen Dienst wählen:
 
@@ -32,9 +32,12 @@ Auf der Website oben rechts **KI & Quellen** öffnen und einen Dienst wählen:
 | **Google Gemini** (beste Qualität) | kostenloser Schlüssel | Schlüssel unter [aistudio.google.com/apikey](https://aistudio.google.com/apikey) erstellen und einfügen. |
 | **Groq** | kostenloser Schlüssel | Schlüssel unter [console.groq.com/keys](https://console.groq.com/keys) erstellen. |
 | **OpenRouter** | kostenlose Modelle, rund 50 Anfragen pro Tag | Schlüssel unter [openrouter.ai/keys](https://openrouter.ai/keys) erstellen. |
+| **DeepSeek** | sehr günstig, aber nicht kostenlos: meist unter einem Cent pro Suche | Guthaben aufladen und Schlüssel unter [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys) erstellen. Die Seite nutzt das günstige Modell `deepseek-flash`. |
 | **Ollama** | kostenlos, läuft auf dem eigenen Rechner | [Ollama](https://ollama.com) installieren, ein Modell laden (z. B. `ollama pull qwen3`) und `OLLAMA_ORIGINS=https://germanclaude.github.io` setzen. |
 
 Ist kein Schlüssel eingetragen, nutzt die Seite automatisch Puter. Schlüssel werden nur im Browser der jeweiligen Person gespeichert und direkt an den gewählten Dienst geschickt. Jede Person nutzt ihren eigenen Zugang, dir als Betreiber entstehen keine Kosten.
+
+> **Wichtig:** Trag deinen Schlüssel nur auf der Website ein, nie in eine Datei dieses Repositorys. Das Repository ist öffentlich – ein Schlüssel im Code könnte von jedem gelesen und auf deine Kosten benutzt werden.
 
 ## Datenquellen
 

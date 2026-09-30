@@ -67,7 +67,7 @@ const AI_NAME = {
 };
 const AI_PERSON = { ...AI_NAME, name: 'Bach', kurz: 'TEST-KI: Bach ist ein Wohnstättenname.', person: 'Die Bachs waren eine thüringische Musikerfamilie.', zeitschichten: AI_NAME.zeitschichten.slice(0, 3).map(z => ({ ...z, form: z.form.replace(/Müller|Molitor|mülnære/, 'Bach') })) };
 
-let aiCalls = 0, lastPrompt = '';
+let aiCalls = 0, lastPrompt = '', dsCall = null;
 function handle(url, req) {
   const h = url.hostname, p = url.searchParams;
   if (h === 'www.wikidata.org') {
@@ -106,6 +106,12 @@ function handle(url, req) {
   }
   if (h === 'lobid.org') return { totalItems: 5400, member: [{ gndIdentifier: '1', preferredName: 'Müller, Konrad', dateOfBirth: ['1350'], placeOfBirth: [{ label: 'Nürnberg' }], professionOrOccupation: [{ label: 'Kaufmann' }], id: 'https://d-nb.info/gnd/1' }] };
   if (h === 'api.nationalize.io') return { count: 5000, name: p.get('name'), country: [{ country_id: 'DE', probability: 0.62 }, { country_id: 'CH', probability: 0.12 }, { country_id: 'AT', probability: 0.07 }] };
+  if (h === 'api.deepseek.com') {
+    if (req.method() === 'GET') return { object: 'list', data: [{ id: 'deepseek-v4-pro' }, { id: 'deepseek-flash' }] };
+    const body = JSON.parse(req.postData() || '{}');
+    dsCall = { model: body.model, format: body.response_format && body.response_format.type, auth: req.headers()['authorization'] };
+    return { choices: [{ message: { role: 'assistant', content: JSON.stringify({ ...AI_NAME, kurz: 'DEEPSEEK-TEST: Schmidt ist ein Berufsname.', name: 'Schmidt' }) }, finish_reason: 'stop' }] };
+  }
   if (h === 'generativelanguage.googleapis.com') {
     if (req.method() === 'GET') return { models: [{ name: 'models/gemini-3.8-flash', supportedGenerationMethods: ['generateContent'] }, { name: 'models/gemini-3.8-flash-tts', supportedGenerationMethods: ['generateContent'] }] };
     aiCalls++;
@@ -121,9 +127,9 @@ function handle(url, req) {
   await new Promise(r => server.listen(8765, r));
   const browser = await chromium.launch();
   const errors = [];
-  const run = async (opts, fn) => {
+  const run = async (opts, fn, cfgObj = { provider: 'auto', keys: { gemini: 'TESTKEY' } }) => {
     const context = await browser.newContext(opts);
-    await context.addInitScript(() => localStorage.setItem('namensspur.cfg.v1', JSON.stringify({ provider: 'auto', keys: { gemini: 'TESTKEY' } })));
+    await context.addInitScript(c => localStorage.setItem('namensspur.cfg.v1', JSON.stringify(c)), cfgObj);
     await context.route('**/*', async route => {
       const req = route.request();
       const url = new URL(req.url());
@@ -198,7 +204,26 @@ function handle(url, req) {
     console.log('reroot ok', JSON.stringify(re));
   });
 
-  // 3) Claude-Ansicht nachgebildet: KI über sample, keine externen Datenabfragen
+  // 3) DeepSeek als KI: Modellwahl, JSON-Modus und Schlüssel im Kopf der Anfrage
+  await run({ viewport: { width: 1100, height: 900 } }, async page => {
+    await page.fill('#nameInput', 'Schmidt');
+    await page.click('#btnGo');
+    await page.waitForSelector('text=DEEPSEEK-TEST: Schmidt ist ein Berufsname.', { timeout: 20000 });
+    await page.click('#btnSettings');
+    const d = await page.evaluate(() => ({ prov: document.querySelector('#provSel').value, options: [...document.querySelectorAll('#provSel option')].map(o => o.value), keyField: !!document.querySelector('#key_deepseek'), log: document.querySelector('#log').innerText.split('\n').pop() }));
+    console.log('deepseek', JSON.stringify(d), JSON.stringify(dsCall));
+    if (d.prov !== 'deepseek' || !d.keyField || !d.options.includes('deepseek')) throw new Error('DeepSeek-Einstellungen fehlen');
+    if (!dsCall || dsCall.model !== 'deepseek-flash' || dsCall.format !== 'json_object' || dsCall.auth !== 'Bearer DSKEY') throw new Error('DeepSeek-Anfrage falsch');
+  }, { provider: 'deepseek', keys: { deepseek: 'DSKEY' } });
+
+  // 4) Automatik mit nur einem DeepSeek-Schlüssel wählt DeepSeek
+  await run({ viewport: { width: 1100, height: 900 } }, async page => {
+    const st = await page.evaluate(() => document.querySelector('#aiStatus').innerText);
+    if (!/DeepSeek/.test(st)) throw new Error('Automatik wählt DeepSeek nicht: ' + st);
+    console.log('auto', st);
+  }, { provider: 'auto', keys: { deepseek: 'DSKEY' } });
+
+  // 5) Claude-Ansicht nachgebildet: KI über sample, keine externen Datenabfragen
   {
     const context = await browser.newContext({ viewport: { width: 1024, height: 900 } });
     const external = [];

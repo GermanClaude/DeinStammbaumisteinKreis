@@ -140,6 +140,8 @@ ok(T.capName('McDonald') === 'McDonald', 'keep mixed');
 // Modelle
 const g = T.rankGemini(['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview', 'gemini-3.8-flash-tts', 'gemini-3-flash-preview', 'gemini-flash-latest']);
 ok(g[0] === 'gemini-3.8-flash' && !g.includes('gemini-3.1-pro-preview') && !g.includes('gemini-3.8-flash-tts'), 'gemini rank ' + g.join());
+const ds = T.rankDeepSeek(['deepseek-v4-pro', 'deepseek-flash', 'deepseek-v4-flash-vision-exp', 'deepseek-chat', 'deepseek-reasoner']);
+ok(ds.join() === 'deepseek-flash,deepseek-chat,deepseek-v4-pro,deepseek-reasoner', 'deepseek rank ' + ds.join());
 const q = T.rankGroq(['whisper-large-v3', 'llama-3.1-8b-instant', 'openai/gpt-oss-120b', 'groq/compound']);
 ok(q[0] === 'openai/gpt-oss-120b' && q.length === 2, 'groq rank');
 
