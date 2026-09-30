@@ -1,0 +1,450 @@
+<title>Namensspur</title>
+<meta name="description" content="Namensspur verfolgt Vor- und Nachnamen mit KI und freien Quellen bis zu ihren ältesten Wurzeln zurück.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&family=Cinzel:wght@500&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif:ital,wght@0,400;1,400&family=Texturina:opsz,wght@12..72,500&family=UnifrakturMaguntia&display=swap">
+<style>
+/* Layout: Suchregister oben, darunter ein Bohrkern durch die Zeitschichten des Namens – jüngste Schicht oben, älteste Wurzel unten; Nebenbefunde in einer schmalen Randspalte. */
+:root{
+  --bg:#ECEFEA;
+  --surface:#F8FAF6;
+  --surface-2:#E1E6DF;
+  --ink:#16201B;
+  --ink-2:#4B5750;
+  --line:#C6CEC7;
+  --accent:#0E6B5E;
+  --accent-soft:#D2E7E1;
+  --on-accent:#F2FBF7;
+  --good:#2D6E3E;
+  --warn:#8A5806;
+  --bad:#A03B2D;
+  --core-0:#D8DFD6;
+  --core-1:#BFCABC;
+  --core-2:#9FAD99;
+  --core-3:#66735F;
+  --core-4:#46513F;
+  --core-ink-l:#1C2620;
+  --core-ink-d:#F1F5F0;
+  --grain:rgba(22,32,27,.10);
+  --f-ui:"Archivo","Helvetica Neue",Arial,system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --f-fraktur:"UnifrakturMaguntia","Texturina","Noto Serif",Georgia,serif;
+  --f-textura:"Texturina","Noto Serif",Georgia,serif;
+  --f-roman:"Cinzel","Noto Serif",Georgia,serif;
+  --f-reko:"Noto Serif",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1512;--surface:#161D1A;--surface-2:#1F2824;--ink:#E4EBE7;--ink-2:#9BA8A1;--line:#2C3832;
+    --accent:#5CC7B2;--accent-soft:#16332D;--on-accent:#06201B;--good:#6BC98A;--warn:#E0A84A;--bad:#F08A7A;
+    --core-0:#3A4842;--core-1:#33403A;--core-2:#2C3832;--core-3:#25302B;--core-4:#1F2924;
+    --core-ink-l:#DCE4DF;--core-ink-d:#DCE4DF;--grain:rgba(255,255,255,.06);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1512;--surface:#161D1A;--surface-2:#1F2824;--ink:#E4EBE7;--ink-2:#9BA8A1;--line:#2C3832;
+  --accent:#5CC7B2;--accent-soft:#16332D;--on-accent:#06201B;--good:#6BC98A;--warn:#E0A84A;--bad:#F08A7A;
+  --core-0:#3A4842;--core-1:#33403A;--core-2:#2C3832;--core-3:#25302B;--core-4:#1F2924;
+  --core-ink-l:#DCE4DF;--core-ink-d:#DCE4DF;--grain:rgba(255,255,255,.06);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:1rem;line-height:1.55}
+[hidden]{display:none!important}
+img{max-width:100%}
+a{color:var(--accent);text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:clamp(16px,4vw,40px);padding-block:0}
+
+/* Kopf */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:16px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-stretch:112%;font-size:1.08rem;letter-spacing:.01em}
+.brand svg{width:22px;height:28px;display:block;flex:none}
+.brand .c0{fill:var(--core-0)}.brand .c1{fill:var(--core-1)}.brand .c2{fill:var(--core-2)}.brand .c3{fill:var(--core-3)}.brand .c4{fill:var(--core-4)}
+.brand .rim{fill:none;stroke:var(--ink);stroke-width:1.2}
+
+/* Knöpfe & Chips */
+.btn{font:inherit;font-weight:600;font-size:.95rem;border-radius:8px;padding:10px 16px;border:1px solid transparent;cursor:pointer;line-height:1.2;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;white-space:nowrap}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.primary:disabled{opacity:.6;cursor:progress}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--ink-2)}
+.btn.small{padding:6px 10px;font-size:.85rem;font-weight:500}
+.linkbtn{background:none;border:0;padding:0;font:inherit;color:var(--accent);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{font:inherit;font-size:.85rem;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;line-height:1.35}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.lbl,.field-label,.eyebrow,.mini-h{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);font-weight:500}
+.lbl{margin-inline:4px 2px}
+.note{font-size:.86rem;color:var(--ink-2);margin:0}
+
+/* Suche */
+.search{padding-block:clamp(28px,6vw,52px) 22px}
+.search h1{font-size:clamp(1.65rem,4.4vw,2.7rem);line-height:1.1;font-weight:760;font-stretch:108%;letter-spacing:-.012em;margin:0 0 12px;max-width:24ch;text-wrap:balance}
+.lede{margin:0 0 22px;color:var(--ink-2);max-width:62ch;font-size:1.02rem}
+.register{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px clamp(14px,3vw,24px) 16px;display:grid;gap:14px}
+.modes{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.modes label{position:relative;display:inline-block}
+.modes input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer;width:100%;height:100%}
+.modes span{display:inline-block;padding:6px 13px;border:1px solid var(--line);border-radius:999px;font-size:.88rem;color:var(--ink-2)}
+.modes input:checked + span{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.modes input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+.field{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:end}
+.field .field-label{grid-column:1/-1;margin:0}
+#nameInput{width:100%;min-width:0;font:inherit;font-size:clamp(1.35rem,3.4vw,1.85rem);font-weight:600;color:var(--ink);background:transparent;border:0;border-bottom:2px solid var(--ink);padding:4px 2px 6px;border-radius:0}
+#nameInput:focus{outline:none;border-bottom-color:var(--accent)}
+#nameInput::placeholder{color:var(--ink-2);opacity:.6;font-weight:400}
+.aux{display:grid;gap:10px}
+.ai-status{margin:0;font-size:.86rem;color:var(--ink-2)}
+.ai-status b{color:var(--ink);font-weight:600}
+.env-note{margin:0;font-size:.86rem;background:var(--accent-soft);color:var(--ink);border-radius:8px;padding:8px 12px}
+@media (max-width:560px){
+  .field{grid-template-columns:1fr 1fr}
+  #nameInput{grid-column:1/-1}
+  .field .btn{width:100%}
+}
+
+/* Einstellungen */
+.settings{margin-block:4px 26px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px clamp(14px,3vw,24px)}
+.settings-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.settings h2{margin:0;font-size:1.2rem;font-stretch:108%}
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:22px}
+.set-block{display:grid;gap:8px;align-content:start;min-width:0}
+.set-block select,.set-block input[type=text],.set-block input[type=password],.set-block input[type=url]{font:inherit;font-size:.93rem;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%;min-width:0}
+.inrow{display:flex;gap:6px;min-width:0}
+.inrow input{flex:1}
+.toggles{display:flex;flex-wrap:wrap;gap:6px 16px}
+.toggles label{display:inline-flex;gap:6px;align-items:center;font-size:.9rem}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* Protokoll */
+.progress{margin-block:0 22px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px clamp(14px,3vw,22px)}
+.progress .eyebrow{margin:0 0 8px}
+.log{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-family:var(--f-mono);font-size:.8rem}
+.log li{display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;align-items:baseline}
+.log .st{text-align:center;display:inline-block;width:18px}
+.log li[data-s=run] .st::before,.spin{content:"";display:inline-block;width:10px;height:10px;border:2px solid var(--accent);border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-1px}
+.log li[data-s=ok] .st::before{content:"✓";color:var(--good)}
+.log li[data-s=fail] .st::before{content:"✕";color:var(--bad)}
+.log li[data-s=skip] .st::before{content:"–";color:var(--ink-2)}
+.log .d{color:var(--ink-2);overflow-wrap:anywhere}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Ergebniskopf */
+.result{padding-block:6px 40px}
+.res-head{padding-block:18px 26px;border-bottom:1px solid var(--line);margin-bottom:30px}
+.res-kicker{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px}
+.badge{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:4px;background:var(--accent-soft);color:var(--accent);font-weight:500}
+.kicker{font-family:var(--f-mono);font-size:.78rem;color:var(--ink-2);letter-spacing:.03em}
+.res-name{font-size:clamp(2.5rem,8.5vw,4.8rem);line-height:1;margin:0 0 16px;font-weight:800;font-stretch:120%;letter-spacing:-.02em;overflow-wrap:anywhere;text-wrap:balance}
+.res-summary{font-size:1.1rem;max-width:62ch;margin:0 0 20px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:12px 24px;margin:0}
+.facts div{min-width:0;border-top:1px solid var(--line);padding-top:8px}
+.facts dt{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2)}
+.facts dd{margin:3px 0 0;font-weight:600;overflow-wrap:anywhere}
+.facts.small dd{font-size:.93rem}
+.res-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:18px}
+.res-actions:empty{display:none}
+.copy-fallback{width:100%;min-height:120px;font:inherit;font-size:.85rem;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:8px}
+
+/* Raster */
+.res-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,310px);gap:clamp(24px,4vw,48px);align-items:start}
+@media (max-width:920px){.res-grid{grid-template-columns:minmax(0,1fr)}}
+.res-main{min-width:0}
+.sec{margin-bottom:44px;min-width:0}
+.sec-head{margin-bottom:14px}
+.sec h3{font-size:1.5rem;margin:0 0 4px;font-weight:760;font-stretch:108%;letter-spacing:-.005em}
+.sec h4{font-size:1rem;margin:22px 0 8px;font-weight:700}
+.sec-sub{margin:0;color:var(--ink-2);font-size:.93rem;max-width:62ch}
+
+/* Zeitschichten */
+.strata-cap{display:flex;justify-content:space-between;gap:12px;margin:0;padding:6px 2px;font-family:var(--f-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.strata-cap span:last-child{text-align:right;text-transform:none;letter-spacing:0}
+.strata{list-style:none;margin:0;padding:0;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--surface)}
+.layer{display:grid;grid-template-columns:76px minmax(0,1fr)}
+.layer + .layer{border-top:1px solid var(--line)}
+.core{background-color:var(--core);color:var(--core-ink);padding:16px 6px;display:flex;flex-direction:column;align-items:center;gap:12px;font-family:var(--f-mono);font-size:.74rem;text-align:center;line-height:1.2;background-image:radial-gradient(var(--grain) 1px,transparent 1.4px);background-size:9px 7px}
+.core .yr{font-weight:500;font-variant-numeric:tabular-nums}
+.core .yr small{display:block;font-size:.62rem;font-weight:400;opacity:.9}
+.core .era{writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:.16em;text-transform:uppercase;font-size:.62rem;opacity:.85}
+.era-gegenwart{--core:var(--core-0);--core-ink:var(--core-ink-l)}
+.era-neuzeit{--core:var(--core-1);--core-ink:var(--core-ink-l)}
+.era-mittelalter{--core:var(--core-2);--core-ink:var(--core-ink-l)}
+.era-antike{--core:var(--core-3);--core-ink:var(--core-ink-d)}
+.era-urzeit{--core:var(--core-4);--core-ink:var(--core-ink-d)}
+.layer-body{padding:16px clamp(14px,2.6vw,24px) 18px;min-width:0}
+.layer-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-family:var(--f-mono);font-size:.76rem;color:var(--ink-2)}
+.form{margin:6px 0 8px;font-size:clamp(1.7rem,4.6vw,2.45rem);line-height:1.12;overflow-wrap:anywhere}
+.era-gegenwart .form{font-family:var(--f-ui);font-weight:720;font-stretch:115%;letter-spacing:-.01em}
+.era-neuzeit .form{font-family:var(--f-fraktur);font-size:clamp(1.95rem,5.2vw,2.75rem);font-weight:400}
+.era-mittelalter .form{font-family:var(--f-textura);font-weight:500}
+.era-antike .form{font-family:var(--f-roman);font-weight:500;letter-spacing:.05em}
+.era-urzeit .form,.form.reko{font-family:var(--f-reko);font-style:italic;font-weight:400;letter-spacing:0;font-stretch:normal}
+.layer-text{margin:0 0 12px;max-width:62ch}
+.tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cert{font-family:var(--f-mono);font-size:.7rem;padding:2px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.cert-belegt{color:var(--good)}
+.cert-wahrscheinlich{color:var(--accent)}
+.cert-unsicher{color:var(--warn);border-style:dashed}
+.src{font-family:var(--f-mono);font-size:.7rem;padding:2px 8px;border-radius:4px;background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
+.layer.ghost .ln{display:block;height:10px;border-radius:4px;background:var(--surface-2);margin:8px 0;max-width:70%}
+.layer.ghost .ln.big{height:26px;max-width:40%;margin-top:4px}
+.state-box{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+.state-box.bad{border-color:var(--bad)}
+.state-box b{display:block;margin-bottom:4px}
+.state-box p{margin:0 0 10px}
+.state-box pre{white-space:pre-wrap;font-size:.8rem;max-height:240px;overflow:auto;background:var(--bg);padding:8px;border-radius:6px}
+.quote{border-left:3px solid var(--core-2);padding:4px 0 4px 12px;margin:10px 0 0;color:var(--ink-2);font-size:.92rem;white-space:pre-wrap}
+@media (max-width:560px){.layer{grid-template-columns:50px minmax(0,1fr)}.core .era{display:none}.core{padding-inline:3px}}
+
+/* Diagramm & Tabellen */
+.chart{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 14px 6px;margin-bottom:14px}
+.chart-title{font-weight:650;font-size:.95rem;margin:0 0 6px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .bar{fill:var(--accent)}
+.chart .bar.on{fill:var(--ink)}
+.chart .tick{fill:var(--ink-2);font-family:var(--f-mono);font-size:11px;font-variant-numeric:tabular-nums}
+.chart .hit{fill:transparent;cursor:default}
+.chart .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:.8rem;padding:5px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-110%);z-index:2}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:500;background:var(--surface-2);white-space:nowrap}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+.rec-intro{margin:0 0 12px}
+details.more{margin-top:10px}
+details summary{cursor:pointer;color:var(--accent);font-size:.88rem}
+
+/* Stammbaum */
+.tree-src{margin:0 0 10px;font-size:.88rem;color:var(--ink-2)}
+.pedigree-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px;margin-top:12px}
+.pedigree{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;min-width:640px}
+.gen{display:flex;flex-direction:column;min-width:0}
+.gen-label{margin:0 0 6px;font-family:var(--f-mono);font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2)}
+.gen-cards{display:flex;flex-direction:column;justify-content:space-around;gap:8px;flex:1}
+.pcard{font:inherit;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--ink);min-width:0;display:block;width:100%}
+button.pcard{cursor:pointer}
+button.pcard:hover{border-color:var(--accent)}
+.pcard .k{font-family:var(--f-mono);font-size:.64rem;color:var(--ink-2)}
+.pcard .n{display:block;font-weight:600;font-size:.88rem;line-height:1.25;overflow-wrap:anywhere}
+.pcard .y{display:block;font-family:var(--f-mono);font-size:.72rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.pcard.empty{border-style:dashed;color:var(--ink-2);background:transparent}
+.pcard.empty .n{font-weight:400}
+.pcard.root{border-color:var(--ink);border-width:2px}
+.line{list-style:none;margin:0;padding:0}
+.line li{display:grid;grid-template-columns:56px minmax(0,1fr);gap:12px;padding:7px 0;border-bottom:1px dashed var(--line);align-items:baseline}
+.line .g{font-family:var(--f-mono);font-size:.76rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.line .y{font-family:var(--f-mono);font-size:.78rem;color:var(--ink-2);margin-left:6px}
+.line .endnote{display:block;font-size:.8rem;color:var(--accent)}
+.cands{margin-top:18px}
+.cands ul{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px}
+.cands li{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--surface)}
+.cands li > div{min-width:0}
+.cands .y{font-family:var(--f-mono);font-size:.76rem;color:var(--ink-2)}
+.cands .ci{display:block;font-size:.82rem;color:var(--ink-2)}
+.state-line{display:flex;gap:8px;align-items:center;font-size:.9rem;margin:0 0 10px}
+.state-line.bad{color:var(--bad)}
+
+/* Randspalte */
+.res-side{min-width:0}
+.side-sec{border-top:2px solid var(--ink);padding-top:10px;margin-bottom:30px}
+.side-sec h3{font-size:1.02rem;margin:0 0 10px;font-weight:720;font-stretch:108%}
+.mini-h{margin:14px 0 6px}
+.plain{margin:0;padding-left:18px;display:grid;gap:7px;font-size:.93rem}
+.plain.compact{gap:3px}
+.plain .y{font-family:var(--f-mono);font-size:.76rem;color:var(--ink-2)}
+.bars{display:grid;gap:8px}
+.bar-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 8px;font-size:.88rem;align-items:baseline}
+.bar-row .pct{font-family:var(--f-mono);font-size:.78rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.bar-track{grid-column:1/-1;height:8px}
+.bar-fill{height:100%;background:var(--accent);border-radius:0 4px 4px 0;min-width:2px}
+
+/* Weiterforschen & Quellen */
+.lk-group h4{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);margin:20px 0 8px;font-weight:500}
+.linkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:10px}
+.lk{display:block;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--ink);min-width:0}
+.lk:hover{border-color:var(--accent)}
+.lk b{display:block;font-weight:650}
+.lk b::after{content:" ↗";color:var(--ink-2);font-weight:400}
+.lk span{display:block;font-size:.84rem;color:var(--ink-2)}
+.tips{margin-bottom:6px}
+.srclist{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.srclist li{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px;min-width:0}
+.srclist .row1{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;justify-content:space-between}
+.srclist .nm{font-weight:650}
+.state{font-family:var(--f-mono);font-size:.72rem}
+.state.ok{color:var(--good)}.state.fail{color:var(--bad)}.state.skip{color:var(--ink-2)}
+.srclist .sm{font-size:.86rem;color:var(--ink-2);margin:2px 0 0;overflow-wrap:anywhere}
+.excerpt{white-space:pre-wrap;font-size:.83rem;color:var(--ink-2);max-height:260px;overflow:auto;margin:8px 0 0;overflow-wrap:anywhere}
+.foot{border-top:1px solid var(--line);padding-block:18px 28px;font-size:.84rem;color:var(--ink-2)}
+.foot p{margin:0 0 6px;max-width:80ch}
+
+@media (prefers-reduced-motion:no-preference){
+  .strata:not(.static) .layer:not(.ghost){animation:settle .45s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0) * 60ms)}
+  @keyframes settle{from{transform:translateY(-6px);opacity:.55}to{transform:none;opacity:1}}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 22 28" aria-hidden="true">
+        <rect class="c0" x="4" y="2" width="14" height="5"/>
+        <rect class="c1" x="4" y="7" width="14" height="5"/>
+        <rect class="c2" x="4" y="12" width="14" height="5"/>
+        <rect class="c3" x="4" y="17" width="14" height="4.5"/>
+        <rect class="c4" x="4" y="21.5" width="14" height="4.5"/>
+        <rect class="rim" x="4" y="2" width="14" height="24" rx="2"/>
+      </svg>
+      <span>Namensspur</span>
+    </div>
+    <button id="btnSettings" class="btn ghost small" type="button" aria-expanded="false" aria-controls="settings">KI &amp; Quellen</button>
+  </header>
+
+  <section class="search" aria-labelledby="searchTitle">
+    <h1 id="searchTitle">Woher kommt ein Name – und wie weit reicht er zurück?</h1>
+    <p class="lede">Gib einen Nachnamen, einen Vornamen oder eine Person ein. Namensspur sammelt freie Quellen und lässt eine KI die Spur bis zur ältesten erreichbaren Wurzel nachzeichnen.</p>
+    <form id="searchForm" class="register" autocomplete="off" novalidate>
+      <fieldset class="modes">
+        <legend class="sr-only">Art des Namens</legend>
+        <label><input type="radio" name="mode" id="modeNachname" value="nachname" checked><span>Nachname</span></label>
+        <label><input type="radio" name="mode" id="modeVorname" value="vorname"><span>Vorname</span></label>
+        <label><input type="radio" name="mode" id="modePerson" value="person"><span>Person</span></label>
+      </fieldset>
+      <div class="field">
+        <label for="nameInput" class="field-label">Name</label>
+        <input id="nameInput" name="name" type="text" value="Müller" placeholder="z. B. Müller" maxlength="80" spellcheck="false" autocapitalize="words">
+        <button id="btnGo" class="btn primary" type="submit">Zurückverfolgen</button>
+        <button id="btnStop" class="btn ghost" type="button" hidden>Abbrechen</button>
+      </div>
+      <div class="aux">
+        <p id="aiStatus" class="ai-status"></p>
+        <p id="envNote" class="env-note" hidden></p>
+        <div id="recent" class="chips"></div>
+      </div>
+    </form>
+  </section>
+
+  <section id="settings" class="settings" hidden aria-labelledby="settingsTitle">
+    <div class="settings-head">
+      <h2 id="settingsTitle">KI &amp; Quellen</h2>
+      <button id="btnCloseSettings" class="btn ghost small" type="button">Schließen</button>
+    </div>
+    <div class="settings-grid">
+      <div class="set-block">
+        <label for="provSel" class="field-label">KI-Anbieter</label>
+        <select id="provSel"></select>
+        <p id="provNote" class="note"></p>
+        <div id="provFields" class="set-block"></div>
+        <div class="row"><button type="button" class="btn ghost small" id="btnTest">Verbindung testen</button><span id="testOut" class="note" aria-live="polite"></span></div>
+      </div>
+      <div class="set-block">
+        <p class="field-label">Live-Quellen</p>
+        <div id="srcToggles" class="toggles"></div>
+        <p id="srcNote" class="note"></p>
+      </div>
+      <div class="set-block">
+        <p class="field-label">Als eigene Website</p>
+        <p id="siteNote" class="note"></p>
+        <div class="row"><button type="button" class="btn ghost small" id="btnDownload" hidden>Eigenständige Version herunterladen</button><span id="dlOut" class="note" aria-live="polite"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="progress" class="progress" hidden aria-labelledby="logTitle">
+    <p id="logTitle" class="eyebrow">Grabungsprotokoll</p>
+    <ol id="log" class="log" aria-live="polite"></ol>
+  </section>
+
+  <main id="result" class="result">
+    <header class="res-head">
+      <div class="res-kicker"><span id="resBadge" class="badge">Beispiel</span><span id="resMode" class="kicker"></span></div>
+      <h2 id="resName" class="res-name"></h2>
+      <p id="resSummary" class="res-summary"></p>
+      <dl id="resFacts" class="facts"></dl>
+      <div id="resActions" class="res-actions"></div>
+    </header>
+
+    <div class="res-grid">
+      <div class="res-main">
+        <section id="secStrata" class="sec" aria-labelledby="hStrata">
+          <div class="sec-head">
+            <h3 id="hStrata">Zeitschichten</h3>
+            <p class="sec-sub">Von heute bis zur ältesten erreichbaren Wurzel. Jede Schicht zeigt die Form des Namens in ihrer Zeit – gesetzt in einer Schrift dieser Epoche.</p>
+          </div>
+          <div id="strataState"></div>
+          <div id="strataWrap">
+            <p class="strata-cap"><span>Oberfläche</span><span>heute</span></p>
+            <ol id="strata" class="strata"></ol>
+            <p class="strata-cap"><span>Tiefste erreichbare Schicht</span><span id="deepest"></span></p>
+          </div>
+          <p id="strataNote" class="note"></p>
+        </section>
+
+        <section id="secTree" class="sec" hidden aria-labelledby="hTree">
+          <div class="sec-head">
+            <h3 id="hTree">Stammbaum</h3>
+            <p class="sec-sub">Öffentlich dokumentierte Vorfahren. Für Privatpersonen gibt es hier in der Regel keine Daten.</p>
+          </div>
+          <div id="treeBody"></div>
+        </section>
+
+        <section id="secRecords" class="sec" hidden aria-labelledby="hRecords">
+          <div class="sec-head">
+            <h3 id="hRecords">Früheste Belege</h3>
+            <p class="sec-sub">Dokumentierte Menschen mit diesem Namen, nach Geburtsjahr sortiert.</p>
+          </div>
+          <p id="recIntro" class="rec-intro"></p>
+          <div id="centChart" class="chart" hidden></div>
+          <div id="recTable" class="tbl-wrap"></div>
+          <div class="row" style="margin-top:10px"><button type="button" class="btn ghost small" id="recMore" data-act="recMore" hidden></button></div>
+        </section>
+      </div>
+
+      <aside class="res-side" aria-label="Weitere Befunde">
+        <section id="secVariants" class="side-sec" hidden>
+          <h3>Varianten</h3>
+          <div id="variants" class="chips"></div>
+          <div id="related"></div>
+        </section>
+        <section id="secSpread" class="side-sec" hidden>
+          <h3>Verbreitung</h3>
+          <div id="spread"></div>
+        </section>
+        <section id="secKnow" class="side-sec" hidden>
+          <h3>Wissenswertes</h3>
+          <div id="know"></div>
+        </section>
+      </aside>
+    </div>
+
+    <section id="secResearch" class="sec" aria-labelledby="hResearch">
+      <div class="sec-head">
+        <h3 id="hResearch">Selbst weiterforschen</h3>
+        <p class="sec-sub">Die Links öffnen die Suche direkt mit diesem Namen.</p>
+      </div>
+      <div id="tips" class="tips"></div>
+      <div id="links"></div>
+    </section>
+
+    <section id="secSources" class="sec" aria-labelledby="hSources">
+      <div class="sec-head"><h3 id="hSources">Quellen</h3></div>
+      <div id="sources"></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Namensspur nutzt frei zugängliche Daten: Wikipedia, Wiktionary und Wikidata (Wikimedia), WikiTree, die Gemeinsame Normdatei der Deutschen Nationalbibliothek über lobid.org sowie nationalize.io.</p>
+    <p>KI-Texte können Fehler enthalten. Jede Aussage ist nach ihrer Sicherheit markiert – prüfe Details in den verlinkten Quellen.</p>
+  </footer>
+</div>
+<script>
+/*__APP_JS__*/
+</script>
